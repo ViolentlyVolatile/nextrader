@@ -8,16 +8,16 @@ echo "🚀 Setting up NEXTRADER..."
 echo "📦 Installing Python dependencies..."
 cd backend
 cp .env.example .env 2>/dev/null || true
-pip install -r requirements.txt --quiet
+python -m pip install -r requirements.txt
 
 echo "✅ Backend ready. Run with:"
-echo "   cd backend && uvicorn main:app --reload"
+echo "   cd backend && python -m uvicorn main:app --reload"
 echo ""
 
 # Frontend
 echo "📦 Installing Node dependencies..."
 cd ../frontend
-npm install --silent
+npm install
 
 echo "✅ Frontend ready. Run with:"
 echo "   cd frontend && npm run dev"

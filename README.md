@@ -8,64 +8,33 @@
 - **Backend:** Python 3.11 · FastAPI · SQLite · pandas · numpy · yfinance
 - **Frontend:** React 18 · Vite · Tailwind CSS v4 · Recharts
 
-### Features
-- 12 independent strategy agents running in parallel
-- Confidence scoring (0–100%) per signal
-- Consensus layer: trade only when ≥3 strategies agree at ≥65%
-- Backtesting with Zerodha brokerage simulation (₹20 flat + STT + GST)
-- Kelly Criterion position sizing (capped at 25%)
-- Risk controls: 1% max risk/trade · 5 max positions · 3% daily loss limit → halt
-- Live scanner: scan any NSE/BSE symbol or bulk scan Nifty50
-
 ---
 
 ## Quick Start
 
-### 1. Backend
-
-```bash
-cd backend
-cp .env.example .env
-pip install -r requirements.txt
-uvicorn main:app --reload
+### 1. Clone locally
+```powershell
+git clone https://github.com/ViolentlyVolatile/nextrader.git D:\CLAUDE_COWORK\nextrader
+cd D:\CLAUDE_COWORK\nextrader
 ```
 
-API available at: http://localhost:8000
-Swagger docs at: http://localhost:8000/docs
+### 2. Backend
+```powershell
+cd backend
+copy .env.example .env
+python -m pip install -r requirements.txt
+python -m uvicorn main:app --reload
+```
+API: http://localhost:8000  
+Swagger docs: http://localhost:8000/docs
 
-### 2. Frontend
-
-```bash
+### 3. Frontend
+```powershell
 cd frontend
 npm install
 npm run dev
 ```
-
-Dashboard at: http://localhost:5173
-
----
-
-## Project Structure
-
-```
-nextrader/
-├── backend/
-│   ├── main.py              # FastAPI entrypoint
-│   ├── config.py            # All constants (capital, risk, thresholds)
-│   ├── database.py          # SQLAlchemy async setup
-│   ├── models/              # Trade, Signal, StrategyStat ORM models
-│   ├── indicators/          # All technical indicators (momentum/trend/vol/volume/patterns)
-│   ├── strategies/          # All 12 strategies + base class
-│   ├── engine/              # Orchestrator, consensus, regime, risk, brokerage
-│   ├── backtester/          # Backtest engine, portfolio, metrics
-│   ├── data/                # yfinance data fetcher, NSE universe
-│   └── api/routes/          # All FastAPI routes
-└── frontend/
-    └── src/
-        ├── pages/           # Dashboard, Backtest, Strategies, Scanner
-        ├── components/      # Sidebar + layout
-        └── api/client.js    # Axios API client
-```
+Dashboard: http://localhost:5173
 
 ---
 
@@ -95,14 +64,14 @@ confidence = (
     regime_fit           × 0.15
 ) × 100
 ```
+Signal fires: confidence ≥ 55%  
+Consensus trade: ≥2 strategies agree · avg confidence ≥ 60%
 
-Signal fires: confidence ≥ 60%  
-Consensus trade: ≥3 strategies agree · avg confidence ≥ 65%
-
----
+## Notes on Data
+- **On your machine:** yfinance fetches real NSE/BSE data automatically
+- **Demo/offline:** bundled `sample_data.json` (15 stocks × 750 bars) is used as fallback
 
 ## Roadmap
-
 - **Phase 2:** Paper trading with live Zerodha Kite feed + WebSocket dashboard
 - **Phase 3:** Genetic algorithm strategy optimizer + strategy graveyard
 - **Phase 4:** Live order execution with hard safety gates
