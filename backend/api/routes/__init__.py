@@ -121,3 +121,63 @@ async def backtest_ohlcv(result_id: str):
 async def backtest_ohlcv(result_id: str):
     if result_id not in _results: raise HTTPException(404,"Result not found")
     return {"ohlcv": _results[result_id].get("ohlcv",[])}
+
+
+# ── NSE Browser Data Ingestion ────────────────────────────────────────────────
+# Receives OHLCV data POSTed from browser bookmarklet
+
+from pydantic import BaseModel as _BM
+
+class IngestRequest(_BM):
+    symbol:   str
+    exchange: str = "NSE"
+    data:     list[dict]   # raw NSE API response rows
+
+@router.post("/api/data/ingest")
+async def ingest_data(req: IngestRequest):
+    """Accept OHLCV data sent from browser. Saves to data/csv/{symbol}.json"""
+    import os, json as _json
+    from data import _load_sample_cache
+    
+    sym = req.symbol.upper()
+    rows = []
+    for r in req.data:
+        try:
+            rows.append({
+                "date":   r.get("CH_TIMESTAMP","")[:10],
+                "open":   float(r.get("CH_OPENING_PRICE", r.get("open", 0))),
+                "high":   float(r.get("CH_TRADE_HIGH_PRICE", r.get("high", 0))),
+                "low":    float(r.get("CH_TRADE_LOW_PRICE", r.get("low", 0))),
+                "close":  float(r.get("CH_CLOSING_PRICE", r.get("close", 0))),
+                "volume": int(r.get("CH_TOT_TRADED_QTY", r.get("volume", 0))),
+            })
+        except: pass
+
+    if not rows:
+        return {"error": "No valid rows parsed", "received": len(req.data)}
+
+    rows.sort(key=lambda x: x["date"])
+
+    # Save into sample_data cache so fetch_daily picks it up
+    cache = _load_sample_cache()
+    cache[sym] = rows
+
+    # Also persist to disk
+    sample_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 
+                               '..', '..', 'data', 'sample_data.json')
+    sample_path = os.path.normpath(sample_path)
+    with open(sample_path, 'w') as f:
+        _json.dump(cache, f)
+
+    return {"status": "ok", "symbol": sym, "rows": len(rows), 
+            "from": rows[0]["date"], "to": rows[-1]["date"]}
+
+
+@router.get("/api/data/symbols")
+async def list_symbols():
+    """List symbols available in local data store"""
+    from data import _load_sample_cache
+    cache = _load_sample_cache()
+    return {"symbols": [{"symbol": k, "bars": len(v), 
+                          "from": v[0]["date"], "to": v[-1]["date"]}
+                         for k,v in cache.items()]}
