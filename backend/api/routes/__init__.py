@@ -52,6 +52,14 @@ async def run_backtest(req: BacktestReq):
     res = bt.run(req.symbol, df)
     if "error" in res:
         raise HTTPException(400, res["error"])
+    # Store OHLCV for candlestick chart
+    res["ohlcv"] = [{"i":i,"date":str(df.index[i].date()),
+                     "open":round(float(df["open"].iloc[i]),2),
+                     "high":round(float(df["high"].iloc[i]),2),
+                     "low":round(float(df["low"].iloc[i]),2),
+                     "close":round(float(df["close"].iloc[i]),2),
+                     "volume":int(df["volume"].iloc[i])}
+                    for i in range(len(df))]
     rid = f"{req.symbol}_{req.days}d"
     _results[rid] = res
     summary = {k:v for k,v in res.items() if k not in ("equity_curve","trades")}
@@ -100,3 +108,16 @@ async def scan_nifty50():
         if r["signals"] or r["consensus"]:
             results.append(r)
     return {"scanned": len(universe), "with_signals": len(results), "results": results}
+
+
+@router.get("/api/backtest/{result_id}/ohlcv")
+async def backtest_ohlcv(result_id: str):
+    """Return OHLCV data used in the backtest for charting."""
+    if result_id not in _results: raise HTTPException(404,"Result not found")
+    return {"ohlcv": _results[result_id].get("ohlcv", [])}
+
+
+@router.get("/api/backtest/{result_id}/ohlcv")
+async def backtest_ohlcv(result_id: str):
+    if result_id not in _results: raise HTTPException(404,"Result not found")
+    return {"ohlcv": _results[result_id].get("ohlcv",[])}
